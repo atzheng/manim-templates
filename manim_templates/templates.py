@@ -80,6 +80,11 @@ BoldFont = * Thin
             tex_template=mytemplate
         )
         self.title = Tex(f"{{\\bf {title} }}", font_size=60).to_corner(UP + LEFT)
+
+        self.body = VGroup()
+        self.left = VGroup()
+        self.right = VGroup()
+
         self.add(self.title)
         if subtitle is not None:
             self.subtitle = (Tex(subtitle, font_size=30, color=GRAY)
@@ -88,6 +93,9 @@ BoldFont = * Thin
             self.play(FadeIn(self.subtitle, run_time=0.2))
 
     def play_animations(self, animations):
+        self.left.arrange(DOWN).next_to(self.title, DOWN).to_edge(LEFT)
+        self.right.arrange(DOWN).next_to(self.title, DOWN).to_edge(RIGHT)
+        self.body.arrange(DOWN).next_to(self.title, DOWN)
         for anim in animations:
             self.play(anim, run_time=0.5)
             self.next_slide()
