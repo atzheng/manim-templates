@@ -1,3 +1,4 @@
+from typing import Optional
 from manim import *
 import manim
 import funcy as f
@@ -33,42 +34,55 @@ def ParTex(tex, width=0.5, width_unit=r"\textwidth", **kwargs):
                **kwargs)
 
 
-def annotate(objs, annotation: Mobject, color, position):
+def annotate(objs, color, annotation: Optional[Mobject]=None, position=DOWN):
     mobjs = [obj.mobject
              if isinstance(obj, manim.mobject.mobject._AnimationBuilder) else obj
              for obj in objs]
-    annotation.set_color(color).next_to(mobjs[0], position)
-    arrows = [Arrow(annotation.get_top(),
-                    mobj.get_bottom(),
-                    buff=0.03,
-                    stroke_width=2,
-                    color=color,
-                    tip_shape=StealthTip,
-                    tip_length=0.2
-                )
+    rects = [obj.add_background_rectangle(color=color, buff=0.03)
+             for obj in objs]
+    if annotation is not None:
+        annotation.set_color(color).next_to(mobjs[0], position)
+        arrows = [Arrow(annotation.get_top(),
+                        mobj.get_bottom(),
+                        buff=0.03,
+                        stroke_width=2,
+                        color=color,
+                        tip_shape=StealthTip,
+                        tip_length=0.2
+                        )
               for mobj in mobjs]
-    annotation_group = Group(annotation, *arrows)
-    return ([obj.add_background_rectangle(color=color, buff=0.03) for obj in objs],
-            annotation_group)
+        annotation_group = Group(annotation, *arrows)
+        return (rects, annotation_group)
+    else:
+        return rects
 
 
 class BaseSlide(Slide):
-    def setup_slide(self, title, subtitle=None):
+    def setup_slide(self, title=None, subtitle=None):
+# \setmainfont{Helvetica Neue}[
+# BoldFont = * Thin
+# ]
         mytemplate = TexTemplate(
             tex_compiler='xelatex',
             output_format='.xdv',
             preamble=r"""
 \usepackage[english]{babel}
+\usepackage{xcolor}
+\newcommand\red[1]{\color{red}#1}
+\newcommand\blue[1]{\color{blue}#1}
+\newcommand\green[1]{\color{green}#1}
+% \newcommand[red][\color{red}]
+% \newcommand[blue][\color{blue}]
+% \newcommand[green][\color{green}]
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{varwidth}
 \usepackage{fontspec}
 \usepackage{ragged2e}
-\setmainfont{Helvetica Neue}[
-BoldFont = * Thin
-]
             """)
         fg_color = BLACK
         Line.set_default(color=fg_color)
+        Dot.set_default(color=fg_color)
         Arrow.set_default(color=fg_color,
                           stroke_width=2,
                           tip_length=0.2)
@@ -79,13 +93,16 @@ BoldFont = * Thin
             font_size=40,
             tex_template=mytemplate
         )
-        self.title = Tex(f"{{\\bf {title} }}", font_size=60).to_corner(UP + LEFT)
+        if title is not None:
+            self.title = Tex(f"{{\\bf {title} }}", font_size=50)
+            self.add(self.title)
+        else:
+            self.title = Mobject().to_corner(UP + LEFT)
 
         self.body = VGroup()
         self.left = VGroup()
         self.right = VGroup()
 
-        self.add(self.title)
         if subtitle is not None:
             self.subtitle = (Tex(subtitle, font_size=30, color=GRAY)
                              .next_to(title, DOWN, buff=0.1)
@@ -95,10 +112,15 @@ BoldFont = * Thin
     def play_animations(self, animations):
         self.left.arrange(DOWN).next_to(self.title, DOWN).to_edge(LEFT)
         self.right.arrange(DOWN).next_to(self.title, DOWN).to_edge(RIGHT)
-        self.body.arrange(DOWN).next_to(self.title, DOWN)
+        self.body.arrange(DOWN).next_to(self.title, DOWN, buff=0.3)
         for anim in animations:
-            self.play(anim, run_time=0.5)
+            if not (isinstance(anim, list) or isinstance(anim, tuple)):
+                anim = [anim]
+            self.play(*anim, run_time=0.5)
             self.next_slide()
+        self.wait(1)
+
+
 
 
 class LatexItems(Tex):
@@ -123,6 +145,10 @@ class LatexItems(Tex):
                self.play(Write(item))
         """
         mytemplate = TexTemplate(tex_compiler='xelatex', output_format='.xdv')
+    # \setmainfont{{Helvetica Neue}}[
+    #   UprightFont=* Thin,
+    #   BoldFont = * Medium
+    # ]
         mytemplate.body = rf"""
     \documentclass[preview]{{standalone}}
     \usepackage[english]{{babel}}
@@ -130,9 +156,7 @@ class LatexItems(Tex):
     \usepackage{{amssymb}}
     \usepackage{{fontspec}}
     \usepackage{{ragged2e}}
-    \setmainfont{{Helvetica Neue}}[
-    BoldFont = * Thin
-    ]
+    \usepackage{{xcolor}}
 
     \begin{{document}}
      \parbox{{{page_width}}}{{
