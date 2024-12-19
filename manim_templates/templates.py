@@ -42,15 +42,18 @@ def annotate(objs, color, annotation: Optional[Mobject]=None, position=DOWN):
              for obj in objs]
     if annotation is not None:
         annotation.set_color(color).next_to(mobjs[0], position)
-        arrows = [Arrow(annotation.get_top(),
-                        mobj.get_bottom(),
-                        buff=0.03,
-                        stroke_width=2,
-                        color=color,
-                        tip_shape=StealthTip,
-                        tip_length=0.2
-                        )
-              for mobj in mobjs]
+        arrows = [
+            Arrow(
+                annotation.get_edge_center(-position),
+                mobj.get_edge_center(position),
+                buff=0.03,
+                stroke_width=2,
+                color=color,
+                tip_shape=StealthTip,
+                tip_length=0.2
+            )
+            for mobj in mobjs
+        ]
         annotation_group = Group(annotation, *arrows)
         return (rects, annotation_group)
     else:
@@ -94,8 +97,8 @@ class BaseSlide(Slide):
             tex_template=mytemplate
         )
         if title is not None:
-            self.title = Tex(f"{{\\bf {title} }}", font_size=50)
-            self.add(self.title)
+            self.title = Tex(f"{{\\bf {title} }}", font_size=50).to_corner(UP + LEFT)
+            self.play(FadeIn(self.title))
         else:
             self.title = Mobject().to_corner(UP + LEFT)
 
@@ -114,10 +117,11 @@ class BaseSlide(Slide):
         self.right.arrange(DOWN).next_to(self.title, DOWN).to_edge(RIGHT)
         self.body.arrange(DOWN).next_to(self.title, DOWN, buff=0.3)
         for anim in animations:
+            self.wait(0.1)
             if not (isinstance(anim, list) or isinstance(anim, tuple)):
                 anim = [anim]
-            self.play(*anim, run_time=0.5)
             self.next_slide()
+            self.play(*anim, run_time=0.2)
         self.wait(1)
 
 
