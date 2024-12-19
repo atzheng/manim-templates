@@ -2,7 +2,7 @@ from typing import Optional
 from manim import *
 import manim
 import funcy as f
-from manim_slides import Slide
+from manim_slides import Slide, ThreeDSlide
 
 config.background_color = WHITE
 def with_defaults(fun, default_kwargs):
@@ -38,7 +38,7 @@ def annotate(objs, color, annotation: Optional[Mobject]=None, position=DOWN):
     mobjs = [obj.mobject
              if isinstance(obj, manim.mobject.mobject._AnimationBuilder) else obj
              for obj in objs]
-    rects = [obj.add_background_rectangle(color=color, buff=0.03)
+    rects = [obj.add_background_rectangle(color=color, buff=0.1)
              for obj in objs]
     if annotation is not None:
         annotation.set_color(color).next_to(mobjs[0], position)
@@ -62,9 +62,6 @@ def annotate(objs, color, annotation: Optional[Mobject]=None, position=DOWN):
 
 class BaseSlide(Slide):
     def setup_slide(self, title=None, subtitle=None):
-# \setmainfont{Helvetica Neue}[
-# BoldFont = * Thin
-# ]
         mytemplate = TexTemplate(
             tex_compiler='xelatex',
             output_format='.xdv',
@@ -125,6 +122,66 @@ class BaseSlide(Slide):
         self.wait(1)
 
 
+class BaseThreeDSlide(ThreeDSlide):
+    def setup_slide(self, title=None, subtitle=None):
+        mytemplate = TexTemplate(
+            tex_compiler='xelatex',
+            output_format='.xdv',
+            preamble=r"""
+\usepackage[english]{babel}
+\usepackage{xcolor}
+\newcommand\red[1]{\color{red}#1}
+\newcommand\blue[1]{\color{blue}#1}
+\newcommand\green[1]{\color{green}#1}
+% \newcommand[red][\color{red}]
+% \newcommand[blue][\color{blue}]
+% \newcommand[green][\color{green}]
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{varwidth}
+\usepackage{fontspec}
+\usepackage{ragged2e}
+            """)
+        fg_color = BLACK
+        Line.set_default(color=fg_color)
+        Dot.set_default(color=fg_color)
+        Arrow.set_default(color=fg_color,
+                          stroke_width=2,
+                          tip_length=0.2)
+        MathTex.set_default(color=fg_color,
+            font_size=40
+        )
+        Tex.set_default(color=fg_color,
+            font_size=40,
+            tex_template=mytemplate
+        )
+        if title is not None:
+            self.title = Tex(f"{{\\bf {title} }}", font_size=50).to_corner(UP + LEFT)
+            self.play(FadeIn(self.title))
+        else:
+            self.title = Mobject().to_corner(UP + LEFT)
+
+        self.body = VGroup()
+        self.left = VGroup()
+        self.right = VGroup()
+
+        if subtitle is not None:
+            self.subtitle = (Tex(subtitle, font_size=30, color=GRAY)
+                             .next_to(title, DOWN, buff=0.1)
+                             .to_edge(LEFT, buff=0.5))
+            self.play(FadeIn(self.subtitle, run_time=0.2))
+
+    def play_animations(self, animations):
+        self.left.arrange(DOWN).next_to(self.title, DOWN).to_edge(LEFT)
+        self.right.arrange(DOWN).next_to(self.title, DOWN).to_edge(RIGHT)
+        self.body.arrange(DOWN).next_to(self.title, DOWN, buff=0.3)
+        for anim in animations:
+            self.wait(0.1)
+            if not (isinstance(anim, list) or isinstance(anim, tuple)):
+                anim = [anim]
+            self.next_slide()
+            self.play(*anim, run_time=0.2)
+        self.wait(1)
 
 
 class LatexItems(Tex):
@@ -171,3 +228,7 @@ class LatexItems(Tex):
     \end{{document}}
         """
         super().__init__(*args, tex_template=mytemplate, tex_environment=None, **kwargs)
+
+
+class TexItems(LatexItems):
+    pass
